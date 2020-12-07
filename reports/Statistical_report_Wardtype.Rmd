@@ -1,0 +1,244 @@
+---
+title: 'Statistical report: Association between ward type and outcomes in patients with heart failure'
+author: 'Statistician: Lina Benson'
+  
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    fig_caption: yes
+    fig_height: 7
+    fig_width: 7
+    number_sections: yes
+link-citations: yes
+bibliography: references.bib
+nocite: '@*'
+---
+
+\newpage 
+\tableofcontents 
+\listoffigures
+\listoftables
+\newpage
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE, include = TRUE, comment = "",
+  warning = FALSE, message = FALSE, fig.pos = "H",
+  fig.path = "../output/figs/"
+)
+options(knitr.kable.NA = "")
+```
+
+```{r adjust_directory, include=FALSE}
+# since report is placed in subdirectory of project
+knitr::opts_knit$set(root.dir = normalizePath("../"))
+```
+
+```{r load_project}
+# 1. Set options in config/global.dcf
+# 2. Load packages listed in config/global.dcf
+# 3. Import functions and code in lib directory
+# 4. Load cache 
+
+ProjectTemplate::reload.project()
+
+# variables that should be presented in tables and included in models
+source("./src/vars_for_tabs_mods.R")
+```             
+
+# Data handling
+
+## Data source
+
+Dataset prepared by Bodil Svennblad with corrections version 6 (rs.data6) with 
+end follow-up 2016-12-31 consisting of data from SwedeHF, SCB (LISA Registry) 
+and Socialstyrelsen (National Patient Registry and Cause of Death Registry). 
+Note that ward type is no longer collected in SwedeHF due to problems with the 
+definition and therefore data from the new SwedeHF is not included in the analysis. 
+This also means that some care should be taken when interpreting the results. 
+
+## Created variables 
+
+Variables prepared in rs.data6 are documented elsewhere. This section specifies 
+additional recoding and derivation of variables for the purpose of current 
+analysis that are not considered to be self-explanatory. 
+
+Income is considered below median if it is below the 50 percentile for that 
+respective year of inclusion, and above median if it is above or equal to the 50 percentile. 
+
+NT-proBNP is considered below median if it is below the 50 percentile within 
+each EF (p, mr, r) group, and above median if it is above or equal to the 50 percentile. 
+
+ras is defined as yes if arb, acei or arni = yes (and arb and acei both 
+non-missing) and no if both arb and acei = no. Since arni was introduced 
+into SwedeHF at a later date all missing are presumed to be no.   
+
+Atrial_fib_flutter, IHD, Diabetes, Hypertension and valve disease are 
+combined from registrations in SwedeHF and the derived variables from 
+the National patient registry as follows: 
+
+d_Atrial_fib_flutter is yes if any of the following are fulfilled: 
+com_AF = "yes" or fibrillation = "yes" or ekg = "Atrial fibrillation",
+
+d_IHD is yes if any of the following are fulfilled: 
+com_IHD = "yes" or revascularized = "yes" or com_pci = "yes" or com_cabg = "yes 
+(there is approx 70% missing in ihd in SwedeHF registations post 2013 so 
+this variable was not included in the combinded variable),
+
+d_Diabetes is yes if any of the following are fulfilled: 
+com_DM = "yes" or diabetes = "yes", 
+
+d_Hypertension is yes if any of the following are fulfilled: 
+com_hypertension = "yes" or hypertension = "yes", 
+
+d_Valvedisease is yes if any of the following are fulfilled: com_Valvular = "yes" 
+or valveDisease = "yes" or heartValveSurgery = "yes"
+
+If the variable in SwedeHF is missing (no missing in the National patient 
+registry) the combined variable is also set to missing. 
+
+Observe that index date is for this project defined as admission NOT discharge 
+for in-patient visits. So time to death/hospitalization is from admission/visit 
+to event/censoring or death. 
+
+## Inclusion/exclusion criteria
+
+```{r flow}
+mykable(flow, caption = "Flowchart")
+```
+
+N unique patients in (). Observe that one patient can have multiple posts and 
+therefore be counted more than once on each row (so for example can be in both the
+excl cardiology cell and the excl medicine cell with different posts). 
+
+First patient in: `r min(wdata$date)` and last patient in: `r max(wdata$date)`.  
+
+# Statistical analysis 
+
+## General
+
+All analyses were performed using `r sessionInfo()$R.version$version.string` [@r]. 
+The level of significance is set to 5%, two-sided. No adjustment for multiple 
+comparisons were made and therefore the results should be viewed with some care.
+
+## Missing data
+
+Missing data was imputed with multiple imputation using mice [@mice] for 10 
+datasets and 10 iterations. Variables included in the model are indicated in 
+Table \ref{tab:tab1overall}. The primary outcome was included as the Nelson-Aalen estimator. 
+Ward type is not included in the imputation model.  
+
+## Time plot
+
+```{r, child = "../src/barplot_cardio.Rmd"}
+
+```
+
+\clearpage
+\newpage
+
+## Baseline characteristics and Odds ratios
+  
+Categorical variables are presented with n (%) and tested with chi-square test 
+and continuous variables with median (q1-q3) and tested with Mann-Whitney U test. 
+Odds ratios are estimated using logistic regression. Note that the p-values 
+for the descriptive statistics should be redundant when presenting p-values 
+from the logistic regression in the same table. 
+
+Variables were chosen based on clinical relevance. BMI was not included in 
+model due to the very percentage of missing observations.  
+
+```{r, child = "../src/tab1.Rmd"}
+
+```
+
+### Assumptions
+
+Outliers were investigated with Cook's distance and multicollinearity 
+with the variance inflation factor in the full model in the overall population. 
+No action was deemed necessary.    
+
+## Outcomes
+
+Summary of follow-up time (years):
+```{r}
+summary(wdata$timeTodeath) / 365.25
+```
+
+### KM curves
+
+Crude time to the respective outcomes was presented using the Kaplan–Meier analysis
+and differences between ward type tested with the log-rank test. 
+
+```{r, child = "../src/km.Rmd"}
+
+```
+
+\clearpage
+\newpage
+
+### Models
+
+Incidence per 1000 py was calculated with 95% Poisson confidence intervals. 
+
+A cox proportional hazards regression was used to evaluate the association 
+between ward and the respective outcomes. Data were censored at 2016-12-31 
+or death, so this assumes that the risk of cv mortality and hf hospitalization 
+would have been the same for a censored patient had the censoring not occurred. 
+Variables adjusted for in the model were chosen according to clinical relevance. 
+Currently the same variables are adjusted for as are included in the logistic 
+regression. 
+
+In-hospital mortality for the in-patient population was analyzed with logistic 
+regression adjusting for the same variables as above. 
+
+```{r, child = "../src/outtab.Rmd"}
+
+```
+
+\newpage
+
+#### Subgroups
+
+Possible differences over subgroups were investigated by including the 
+interaction between the respective variable and clinic. 
+Note that NYHA is dichotomized in the subgroup analysis whereas 
+included as the original variable in the main model. 
+
+```{r, child = "../src/forest.Rmd"}
+
+```
+
+\newpage
+
+#### Assumptions
+
+The assumptions of the models were checked for the primary endpoint all-cause mortality
+in the adjusted model and the overall population. The proportional hazards assumption 
+was investigated using the scaled Schoenfeld residuals (cox.zph in [@survival-package]). 
+Possible outliers were visually inspected by plotting the dfbetas. 
+Age, location and systolic bp and ras were deemed not to have proportional hazards 
+and were therefore included as strata variables in a sensitivity analysis for 
+the primary endpoint.  
+
+# Reproducibility
+
+## R session information {#sessioninfo}
+
+`r sessionInfo()$R.version$version.string` [@r] is used, for more details see below.
+
+```{r sessinfo}
+sessionInfo()
+```
+
+## R code
+
+The R code for all data handling and statistical analyses are found: 
+https://github.com/linabe/Wardtype. On publication the repository is made 
+public under https://github.com/orgs/KIHeartFailure/wardtype_outcomes 
+and it is therefore possible to link to it from the resulting article 
+for increased transparency and code sharing. No data or output is stored in the 
+repository. 
+
+# References

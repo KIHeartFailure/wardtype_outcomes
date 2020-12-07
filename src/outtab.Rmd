@@ -1,0 +1,278 @@
+```{r outtab, cache=TRUE}
+survmy <- function(time, event, eventval = "yes", eventname, filt2,
+                   filtname2, comprisk = FALSE, eventcomp = NULL, filtcomp2,
+                   sensanalysis = FALSE) {
+  if (filtname2 %in% c("In-patient", "Out-patient")) {
+    modvars <- modvars[modvars != "location"]
+    modvarscr <- modvarscr[modvarscr != "location_num_out-patient"]
+  }
+
+  survdata <- wdata %>%
+    filter(!!filt2)
+
+
+  if (!comprisk) nr <- 6 else nr <- 8
+  if (sensanalysis) nr + 1
+
+  out <- data.frame(matrix(NA, ncol = 4, nrow = nr))
+
+  out[1, 1] <- eventname
+  colnames(out) <- c("Outcome", "Model", "cardiology", "non-cardiology")
+
+  ## 1, 3, 5 yr mort (from survfit)
+  fit <- survfit(formula(paste0("Surv(", time, ",", event, "=='", eventval, "') ~ clinic")),
+    data = survdata
+  )
+
+  sfit <- summary(fit, times = c(1, 3, 5) * 365.25)
+
+  out[1:3, 2] <- paste("% survival free (95% CI)", c(1, 3, 5), "yr")
+
+  out[1:3, 3:4] <- paste0(
+    dF(sfit$surv * 100, dig = 0), " (",
+    dF(sfit$lower * 100, dig = 0), "-",
+    dF(sfit$upper * 100, dig = 0), ")"
+  )
+
+  ## incidence rate
+  out[4, 2] <- "Incidence (no events, sum py, rate/1000py (95% CI))"
+
+  survdata$eventcount <- survdata[, event] == eventval
+  survdata <- survdata %>% mutate(eventcount = ifelse(eventcount, 1, 0))
+
+
+  ev <- by(survdata$eventcount, survdata[, "clinic"], sum)
+  s <- by(survdata[, time], survdata[, "clinic"], sum) / 365.25
+  r <- pois.exact(x = ev, pt = s / 1000)
+
+  out[4, 3:4] <- paste0(
+    ev, ", ",
+    dF(s, dig = 0), ", ",
+    dF(r$rate, dig = 0), " (",
+    dF(r$lower, dig = 0), "-",
+    dF(r$upper, dig = 0), ")"
+  )
+
+
+  ## cox regressions
+  mod <- coxph(formula(paste0("Surv(", time, ",", event, "=='", eventval, "') ~ clinic")),
+    data = survdata
+  )
+  smod <- summary(mod)
+
+  p <- dF(smod$coef[1, 5], dig = 3, p = TRUE)
+
+  out[5, 2] <- "Crude HR (95% CI), p-value"
+
+
+  out[5, 3:4] <- c("ref", paste0(
+    dF(smod$conf.int[1, 1], dig = 2),
+    " (", dF(smod$conf.int[1, 3], dig = 2),
+    "-", dF(smod$conf.int[1, 4], dig = 2), "), ",
+    p
+  ))
+
+  amod <- my.coxph.mids(formula(paste0(
+    "Surv(", time, ",", event, "=='", eventval, "') ~ clinic +",
+    paste(modvars, collapse = " + ")
+  )),
+  data = imp, subset = filt2
+  )
+
+  ## df the number of events minus the regression coefficients.
+  ## There is support for this from middle of page 149 of the book by Parmer & Machin (ISBN 0471936405)
+  asmod <- summary(pool(amod,
+    dfcom =
+      (amod$analyses[[1]]$nevent - length(amod$analyses[[1]]$coefficients))
+  ))
+
+  padj <- dF(asmod$p.value[1], dig = 3, p = TRUE)
+
+  out[6, 2] <- "Adj HR (95% CI), p-value"
+  out[6, 3:4] <- c("ref", paste0(
+    dF(exp(asmod$estimate[1]), dig = 2),
+    " (", dF(exp(asmod$estimate[1] - z05 * asmod$std.error[1]), dig = 2),
+    "-", dF(exp(asmod$estimate[1] + z05 * asmod$std.error[1]), dig = 2), "), ",
+    padj
+  ))
+
+  if (sensanalysis) { # sens analysis with location, age, bpsys and ras as strata variables
+    modvarssens <- modvars[!modvars %in% c("age_cat", "location", "bp.sys_cat", "ras")]
+    amod <- my.coxph.mids(formula(paste0(
+      "Surv(", time, ",", event, "=='", eventval, "') ~ clinic +",
+      paste(modvarssens, collapse = " + "),
+      " + strata(age_cat) + strata(location) + strata(bp.sys_cat) + strata(ras)"
+    )),
+    data = imp, subset = filt2
+    )
+
+    ## df the number of events minus the regression coefficients.
+    ## There is support for this from middle of page 149 of the book by Parmer & Machin (ISBN 0471936405)
+    asmod <- summary(pool(amod,
+      dfcom = (amod$analyses[[1]]$nevent -
+        length(amod$analyses[[1]]$coefficients))
+    ))
+
+    padj <- dF(asmod$p.value[1], dig = 3, p = TRUE)
+
+    out[7, 2] <- "Adj HR (95% CI), p-value age, location, bpsys, ras as strata"
+    out[7, 3:4] <- c("ref", paste0(
+      dF(exp(asmod$estimate[1]), dig = 2),
+      " (", dF(exp(asmod$estimate[1] - z05 * asmod$std.error[1]), dig = 2),
+      "-", dF(exp(asmod$estimate[1] + z05 * asmod$std.error[1]), dig = 2), "), ",
+      padj
+    ))
+  }
+
+  if (comprisk) {
+    scc <- summary(crr(survdata[[time]], survdata[[eventcomp]],
+      survdata[["clinic_num_medicine"]],
+      failcode = 1, cencode = 0
+    ))
+
+    pcomp <- dF(scc$coef[5], dig = 3)
+    pcomp <- replace(pcomp, pcomp == "0.000", "<0.001")
+
+    out[7, 2] <- "Crude HR (95% CI), p-value F&G method"
+
+    out[7, 3:4] <- c("ref", paste0(
+      dF(scc$conf.int[1, 1], dig = 2),
+      " (", dF(scc$conf.int[1, 3], dig = 2),
+      "-", dF(scc$conf.int[1, 4], dig = 2), "), ",
+      pcomp
+    ))
+
+    sccadj <- my.crr.mids(
+      event = eventcomp,
+      time = time,
+      xvars = c("clinic_num_medicine", modvarscr),
+      data = imp,
+      subset = filtcomp2
+    )
+
+    ssccadj <- summary(pool(sccadj,
+      dfcom =
+        (amod$analyses[[1]]$nevent -
+          length(amod$analyses[[1]]$coefficients))
+    ))
+
+    pcompadj <- dF(ssccadj$p.value[1], dig = 3)
+    pcompadj <- replace(pcompadj, pcompadj == "0.000", "<0.001")
+
+    out[8, 2] <- "Adj HR (95% CI), p-value F&G method"
+
+    out[8, 3:4] <- c("ref", paste0(
+      dF(exp(ssccadj$estimate[1]), dig = 2),
+      " (", dF(exp(ssccadj$estimate[1] - z05 * ssccadj$std.error[1]), dig = 2),
+      "-", dF(exp(ssccadj$estimate[1] + z05 * ssccadj$std.error[1]), dig = 2), "), ",
+      pcompadj
+    ))
+  }
+  return(out)
+}
+
+survmy2 <- function(filt, filtcomp, filtname) {
+  mort <- survmy(
+    time = "timeTodeath", event = "death",
+    eventname = "All-cause mortality", comprisk = FALSE,
+    filt2 = filt, filtname2 = filtname,
+    sensanalysis = TRUE
+  )
+
+  cvmort <- survmy(
+    time = "timeTodeath", event = "cvDeath",
+    eventname = "CV mortality",
+    filt2 = filt, filtname2 = filtname,
+    comprisk = FALSE
+  )
+
+  hfhosp <- survmy(
+    time = "time_out_hf_hosp", event = "out_hf_hosp",
+    eventname = "First HF hosp",
+    filt2 = filt, filtname2 = filtname,
+    comprisk = FALSE
+  )
+
+  survout <- rbind(
+    mort, cvmort, hfhosp
+  )
+
+  if (filtname == "In-patient") {
+    desc <- wdata %>%
+      filter(location == "in-patient") %>%
+      group_by(clinic) %>%
+      count(inhospmort) %>%
+      mutate(
+        proc = dF(n / sum(n) * 100, dig = 1),
+        np = paste0(n, " (", proc, "%)")
+      ) %>%
+      filter(inhospmort == "yes") %>%
+      select(clinic, np) %>%
+      pivot_wider(names_from = clinic, values_from = np)
+
+    desc2 <- cbind("In-hospital mortality", "n (%)", desc)
+    names(desc2) <- c("Outcome", "Model", "cardiology", "non-cardiology")
+
+    logmoduni <- glm(inhospmort == "yes" ~ clinic,
+      family = binomial(link = "logit"),
+      data = wdata, subset = location == "in-patient"
+    )
+
+    slogmoduni <- summary(logmoduni)
+
+    p <- dF(slogmoduni$coefficients[2, 4], dig = 3, p = TRUE)
+
+    oruni <- data.frame(cbind("", "Crude OR (95% CI), p-value", "ref", paste0(
+      dF(exp(slogmoduni$coefficients[2, 1]), dig = 2),
+      " (", dF(exp(slogmoduni$coefficients[2, 1] - z05 *
+        slogmoduni$coefficients[2, 2]), dig = 2),
+      "-", dF(exp(slogmoduni$coefficients[2, 1] + z05 *
+        slogmoduni$coefficients[2, 2]), dig = 2), "), ",
+      p
+    )))
+
+    names(oruni) <- c("Outcome", "Model", "cardiology", "non-cardiology")
+
+    modvars <- modvars[modvars != "location"]
+    logmodadj <- my.glm.mids(formula(paste0(
+      "inhospmort == 'yes' ~ clinic + ",
+      paste(modvars, collapse = " + ")
+    )),
+    family = binomial(link = "logit"),
+    data = imp, subset = quote(location == "in-patient")
+    )
+
+    slogmodadj <- summary(pool(logmodadj))
+
+    p <- dF(slogmodadj$p.value[2], dig = 3, p = TRUE)
+
+    oradj <- data.frame(cbind("", "Adj OR (95% CI), p-value", "ref", paste0(
+      dF(exp(slogmodadj$estimate[2]), dig = 2),
+      " (", dF(exp(slogmodadj$estimate[2] - z05 * slogmodadj$std.error[2]), dig = 2),
+      "-", dF(exp(slogmodadj$estimate[2] + z05 * slogmodadj$std.error[2]), dig = 2), "), ",
+      p
+    )))
+
+    names(oradj) <- c("Outcome", "Model", "cardiology", "non-cardiology")
+
+    inhospall <- rbind(desc2, oruni, oradj)
+
+    survout <- rbind(survout, inhospall)
+  }
+
+  write.xlsx(survout, paste0("./output/tabs/outtab_", filtname, "_", Sys.Date(), ".xlsx"), rowNames = FALSE)
+  mykable(survout, caption = paste0("Outcomes - ", filtname)) %>% landscape()
+}
+```
+
+```{r outtaboverall, cache=TRUE, dependson="outtab"}
+survmy2(filt = quote(!is.na(age)), filtcomp = quote(!is.na(age_cat)), filtname = "Overall")
+```
+
+```{r outtabin, cache=TRUE, dependson="outtab"}
+survmy2(filt = quote(location == "in-patient"), filtcomp = quote(`location_num_out-patient` == 0), filtname = "In-patient")
+```
+
+```{r outtabout, cache=TRUE, dependson="outtab"}
+survmy2(filt = quote(location == "out-patient"), filtcomp = quote(`location_num_out-patient` == 1), filtname = "Out-patient")
+```

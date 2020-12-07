@@ -1,0 +1,111 @@
+```{r kmoverall, fig.cap="Kaplan-Meier - Overall"}
+fit1 <- survfit(Surv(timeTodeath, death == "yes") ~ clinic, data = wdata)
+sd1 <- survdiff(Surv(timeTodeath, death == "yes") ~ clinic, data = wdata)
+p1 <- dF(pchisq(sd1$chisq, length(sd1$n) - 1, lower.tail = FALSE), dig = 3, p = TRUE)
+p1 <- replace(p1, p1 != "<0.001", paste0("=", p1))
+
+fit2 <- survfit(Surv(time_out_hf_hosp, out_hf_hosp == "yes") ~ clinic, data = wdata)
+sd2 <- survdiff(Surv(time_out_hf_hosp, out_hf_hosp == "yes") ~ clinic, data = wdata)
+p2 <- dF(pchisq(sd2$chisq, length(sd2$n) - 1, lower.tail = FALSE), dig = 3, p = TRUE)
+p2 <- replace(p2, p2 != "<0.001", paste0("=", p2))
+
+fitall <- list(fit1, fit2)
+
+ggsurv <- ggsurvplot_combine(fitall,
+  data = wdata, censor = FALSE, surv.scale = "percent", xscale = 365.25,
+  break.x.by = c(365.25 * 2), xlim = c(0, 365.25 * 12.2),
+  ylab = "Survival/HF hospitalisation survival free (%)", xlab = "Years",
+  risk.table = FALSE,
+  conf.int = FALSE, palette = kicols,
+  axes.offset = FALSE,
+  legend.labs = c("AC mortality cardiology", "AC mortality non-cardiology", "HF hospitalisation cardiology", "HF hospitalisation non-cardiology"),
+  legend.title = "",
+  legend = c(0.8, 0.9)
+)
+
+ggsurv$plot <- ggsurv$plot +
+  ggplot2::annotate("text",
+    x = 970, y = 0.22, # x and y coordinates of the text
+    label = paste0("Log-rank AC mortality p", p1), size = 4.5
+  ) +
+  ggplot2::annotate("text",
+    x = 1125, y = 0.17, # x and y coordinates of the text
+    label = paste0("Log-rank HF hospitalisation p", p2), size = 4.5
+  )
+ggsurv
+```
+
+```{r kmin, fig.cap="Kaplan-Meier - In-patient"}
+
+fit1 <- survfit(Surv(timeTodeath, death == "yes") ~ clinic, data = wdata %>% filter(location == "in-patient"))
+sd1 <- survdiff(Surv(timeTodeath, death == "yes") ~ clinic, data = wdata %>% filter(location == "in-patient"))
+p1 <- dF(pchisq(sd1$chisq, length(sd1$n) - 1, lower.tail = FALSE), dig = 3, p = TRUE)
+p1 <- replace(p1, p1 != "<0.001", paste0("=", p1))
+
+fit2 <- survfit(Surv(time_out_hf_hosp, out_hf_hosp == "yes") ~ clinic, data = wdata %>% filter(location == "in-patient"))
+sd2 <- survdiff(Surv(time_out_hf_hosp, out_hf_hosp == "yes") ~ clinic, data = wdata %>% filter(location == "in-patient"))
+p2 <- dF(pchisq(sd2$chisq, length(sd2$n) - 1, lower.tail = FALSE), dig = 3, p = TRUE)
+p2 <- replace(p2, p2 != "<0.001", paste0("=", p2))
+
+fitall <- list(fit1, fit2)
+
+ggsurv <- ggsurvplot_combine(fitall,
+  data = wdata %>% filter(location == "in-patient"), censor = FALSE, surv.scale = "percent", xscale = 365.25,
+  break.x.by = c(365.25 * 2), xlim = c(0, 365.25 * 12.2),
+  ylab = "Survival/HF hospitalisation survival free (%)", xlab = "Years",
+  risk.table = FALSE,
+  conf.int = FALSE, palette = kicols,
+  axes.offset = FALSE,
+  legend.labs = c("AC mortality cardiology", "AC mortality non-cardiology", "HF hospitalisation cardiology", "HF hospitalisation non-cardiology"),
+  legend.title = "",
+  legend = c(0.8, 0.9)
+)
+
+ggsurv$plot <- ggsurv$plot +
+  ggplot2::annotate("text",
+    x = 970, y = 0.22, # x and y coordinates of the text
+    label = paste0("Log-rank AC mortality p", p1), size = 4.5
+  ) +
+  ggplot2::annotate("text",
+    x = 1125, y = 0.17, # x and y coordinates of the text
+    label = paste0("Log-rank HF hospitalisation p", p2), size = 4.5
+  )
+ggsurv
+```
+
+```{r kmout, fig.cap="Kaplan-Meier - Out-patient"}
+fit1 <- survfit(Surv(timeTodeath, death == "yes") ~ clinic, data = wdata %>% filter(location == "out-patient"))
+sd1 <- survdiff(Surv(timeTodeath, death == "yes") ~ clinic, data = wdata %>% filter(location == "out-patient"))
+p1 <- dF(pchisq(sd1$chisq, length(sd1$n) - 1, lower.tail = FALSE), dig = 3, p = TRUE)
+p1 <- replace(p1, p1 != "<0.001", paste0("=", p1))
+
+fit2 <- survfit(Surv(time_out_hf_hosp, out_hf_hosp == "yes") ~ clinic, data = wdata %>% filter(location == "out-patient"))
+sd2 <- survdiff(Surv(time_out_hf_hosp, out_hf_hosp == "yes") ~ clinic, data = wdata %>% filter(location == "out-patient"))
+p2 <- dF(pchisq(sd2$chisq, length(sd2$n) - 1, lower.tail = FALSE), dig = 3, p = TRUE)
+p2 <- replace(p2, p2 != "<0.001", paste0("=", p2))
+
+fitall <- list(fit1, fit2)
+
+ggsurv <- ggsurvplot_combine(fitall,
+  data = wdata %>% filter(location == "out-patient"), censor = FALSE, surv.scale = "percent", xscale = 365.25,
+  break.x.by = c(365.25 * 2), xlim = c(0, 365.25 * 12.2),
+  ylab = "Survival/HF hospitalisation survival free (%)", xlab = "Years",
+  risk.table = FALSE,
+  conf.int = FALSE, palette = kicols,
+  axes.offset = FALSE,
+  legend.labs = c("AC mortality cardiology", "AC mortality non-cardiology", "HF hospitalisation cardiology", "HF hospitalisation non-cardiology"),
+  legend.title = "",
+  legend = c(0.8, 0.9)
+)
+
+ggsurv$plot <- ggsurv$plot +
+  ggplot2::annotate("text",
+    x = 970, y = 0.22, # x and y coordinates of the text
+    label = paste0("Log-rank AC mortality p", p1), size = 4.5
+  ) +
+  ggplot2::annotate("text",
+    x = 1125, y = 0.17, # x and y coordinates of the text
+    label = paste0("Log-rank HF hospitalisation p", p2), size = 4.5
+  )
+ggsurv
+```
