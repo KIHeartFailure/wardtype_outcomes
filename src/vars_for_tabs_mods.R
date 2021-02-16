@@ -15,7 +15,6 @@ tabvars <- c(
   "com_cancer",
   "com_liver",
   "device_cat",
-  "EF",
   "hb", "hb_cat", "GFR", "GFR_cat", "ntProBNP", "ntProBNP_cat",
   "betaBlocker", "ras", "MRA", "diuretics", "digoxin", "statins", "nitrates", 
   "asaTRC", "anticoagulantia",

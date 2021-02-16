@@ -9,6 +9,10 @@ wdata <- rs.data6 %>%
 flowtabFunc("No missing EF")
 
 wdata <- wdata %>%
+  mutate(koll = ifelse(lvef %in% c("<30%", "30-39%"), "yes", "no"))
+flowtabFunc("EF <= 39%")
+
+wdata <- wdata %>%
   mutate(koll = ifelse(!is.na(clinic), "yes", "no"))
 flowtabFunc("No missing Wardtype (only old RS included)", byclin = FALSE)
 

@@ -134,12 +134,6 @@ forestmy2 <- function(time, event, filt, filtname) {
   ))
   outforest <- rbind(outforest, forestmy(
     time2 = time, event2 = event,
-    xvar = "EF", xvarname = "LVEF",
-    levs = c("pEF", "mrEF", "rEF"),
-    filt2 = filt, filtname2 = filtname
-  ))
-  outforest <- rbind(outforest, forestmy(
-    time2 = time, event2 = event,
     xvar = "d_Diabetes", xvarname = "Diabetes",
     levnames = c("No", "Yes"),
     levs = c("no", "yes"),

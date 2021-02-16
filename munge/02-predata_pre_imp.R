@@ -16,22 +16,15 @@ wdata <- left_join(wdata, inc, by = "indexYear") %>%
   select(-`50%`)
 
 ## ntProBNP
-ntp <- wdata %>%
-  group_by(EF) %>%
-  summarise(ntp = list(enframe(quantile(ntProBNP, probs = c(0.5), na.rm = TRUE)))) %>%
-  unnest(cols = c(ntp)) %>%
-  spread(name, value)
-
-wdata <- left_join(wdata, ntp, by = "EF") %>%
-  mutate(ntProBNP_cat = case_when(
-    ntProBNP < `50%` ~ "1.Below median",
-    ntProBNP >= `50%` ~ "2.Above median"
-  )) %>%
-  select(-`50%`)
+medntp <- median(wdata$ntProBNP, na.rm = TRUE)
 
 wdata <- wdata %>%
   select(-bmi) %>%
   mutate(
+    ntProBNP_cat = case_when(
+      ntProBNP < medntp ~ "1.Below median",
+      ntProBNP >= medntp ~ "2.Above median"
+    ), 
     clinic_num_medicine = case_when(
       clinic == "cardiology" ~ 0,
       clinic == "medicine" ~ 1
@@ -175,7 +168,6 @@ wdata <- wdata %>%
     com_cancer,
     com_liver,
     device_cat,
-    EF,
     hb_cat, hb, GFR_cat, GFR, ntProBNP_cat, ntProBNP,
     betaBlocker, ras, MRA, diuretics, statins, digoxin, nitrates, asaTRC, 
     anticoagulantia, followUp.HF, followUp.location,
@@ -192,5 +184,4 @@ wdata <- wdata %>%
   ) %>%
   mutate_if(is_character, factor) %>%
   mutate(device_cat = relevel(device_cat, ref = "no/pacemaker"),
-         EF = relevel(EF, ref = "rEF"), 
          hb_cat = relevel(hb_cat, ref = ">=120(f)/130(m)"))

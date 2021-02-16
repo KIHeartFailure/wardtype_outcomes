@@ -649,10 +649,10 @@
     },
     "tinytex": {
       "Package": "tinytex",
-      "Version": "0.15",
+      "Version": "0.29",
       "Source": "CRAN",
       "Repository": "CRAN",
-      "Hash": "11c9260eb54db1f55e7573844c2ae8ed"
+      "Hash": "b2aaa1f09ef61dd486de6db10cfcbbc6"
     },
     "ucminf": {
       "Package": "ucminf",
@@ -691,10 +691,10 @@
     },
     "xfun": {
       "Package": "xfun",
-      "Version": "0.9",
+      "Version": "0.21",
       "Source": "CRAN",
       "Repository": "CRAN",
-      "Hash": "f577b2b637a64f3b5662430ccc6fa1b7"
+      "Hash": "943a3aa22b12dbd291abaaf89f128002"
     },
     "yaml": {
       "Package": "yaml",

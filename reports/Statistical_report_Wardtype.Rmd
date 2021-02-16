@@ -67,8 +67,8 @@ analysis that are not considered to be self-explanatory.
 Income is considered below median if it is below the 50 percentile for that 
 respective year of inclusion, and above median if it is above or equal to the 50 percentile. 
 
-NT-proBNP is considered below median if it is below the 50 percentile within 
-each EF (p, mr, r) group, and above median if it is above or equal to the 50 percentile. 
+NT-proBNP is considered below median if it is below the 50 percentile 
+and above median if it is above or equal to the 50 percentile. 
 
 ras is defined as yes if arb, acei or arni = yes (and arb and acei both 
 non-missing) and no if both arb and acei = no. Since arni was introduced 
