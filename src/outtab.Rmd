@@ -19,14 +19,14 @@ survmy <- function(time, event, eventval = "yes", eventname, filt2,
   out[1, 1] <- eventname
   colnames(out) <- c("Outcome", "Model", "cardiology", "non-cardiology")
 
-  ## 1, 3, 5 yr mort (from survfit)
+  ## 30d, 6mo, 1 yr mort (from survfit)
   fit <- survfit(formula(paste0("Surv(", time, ",", event, "=='", eventval, "') ~ clinic")),
     data = survdata
   )
 
-  sfit <- summary(fit, times = c(1, 3, 5) * 365.25)
+  sfit <- summary(fit, times = c(30, 182, 365))
 
-  out[1:3, 2] <- paste("% survival free (95% CI)", c(1, 3, 5), "yr")
+  out[1:3, 2] <- paste("% survival free (95% CI)", c("30d", "6mo", "1yr"))
 
   out[1:3, 3:4] <- paste0(
     dF(sfit$surv * 100, dig = 0), " (",

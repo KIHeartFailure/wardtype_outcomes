@@ -161,9 +161,10 @@ No action was deemed necessary.
 
 ## Outcomes
 
-Summary of follow-up time (years):
+Summary of follow-up time (years, days):
 ```{r}
-summary(wdata$timeTodeath) / 365.25
+summary(wdata$timeTodeath) / 365
+summary(wdata$timeTodeath)
 ```
 
 ### KM curves
@@ -183,7 +184,7 @@ and differences between ward type tested with the log-rank test.
 Incidence per 1000 py was calculated with 95% Poisson confidence intervals. 
 
 A cox proportional hazards regression was used to evaluate the association 
-between ward and the respective outcomes. Data were censored at 2016-12-31 
+between ward and the respective outcomes. Data were censored at 1 year follow-up 
 or death, so this assumes that the risk of cv mortality and hf hospitalization 
 would have been the same for a censored patient had the censoring not occurred. 
 Variables adjusted for in the model were chosen according to clinical relevance. 

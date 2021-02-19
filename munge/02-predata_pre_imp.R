@@ -124,7 +124,27 @@ wdata <- wdata %>%
       com_Valvular == "yes" | valveDisease == "yes" | heartValveSurgery == "yes" ~ "yes",
       TRUE ~ "no"
     ),
+    
     ## outcomes
+    ## in hosp mortality
+    inhospmort = case_when(
+      timeTodeath <= 0 & death == "yes" ~ "yes",
+      TRUE ~ "no"
+    ),
+    
+    ## time to event not from discharge but from admission/visit
+    diffdate = as.numeric(date - DTMIN),
+    timeTodeath = timeTodeath + diffdate,
+    time_out_hf_hosp = time_out_hf_hosp + diffdate,
+    
+    ## censor at 1 yr
+    death = if_else(timeTodeath <= 365, death, "no"),
+    cvDeath = if_else(timeTodeath <= 365, cvDeath, "no"),
+    out_hf_hosp = if_else(time_out_hf_hosp <= 365, out_hf_hosp, "no"),
+    
+    timeTodeath = if_else(timeTodeath <= 365, timeTodeath, 365),
+    time_out_hf_hosp = if_else(time_out_hf_hosp <= 365, time_out_hf_hosp, 365),
+    
     out_death_hfhosp = case_when(
       death == "yes" | out_hf_hosp == "yes" ~ "yes",
       TRUE ~ "no"
@@ -139,16 +159,7 @@ wdata <- wdata %>%
       cvDeath == "yes" ~ 1,
       death == "yes" ~ 2,
       TRUE ~ 0
-    ),
-    ## in hosp mortality
-    inhospmort = case_when(
-      timeTodeath <= 0 & death == "yes" ~ "yes",
-      TRUE ~ "no"
-    ),
-    ## time to event not from discharge but from admission/visit
-    diffdate = as.numeric(date - DTMIN),
-    timeTodeath = timeTodeath + diffdate,
-    time_out_hf_hosp = time_out_hf_hosp + diffdate
+    )
   ) %>%
   select(
     clinic_num_medicine,
