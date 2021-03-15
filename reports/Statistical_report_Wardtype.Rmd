@@ -169,8 +169,7 @@ summary(wdata$timeTodeath)
 
 ### KM curves
 
-Crude time to the respective outcomes was presented using the Kaplan–Meier analysis
-and differences between ward type tested with the log-rank test. 
+Crude time to the respective outcomes was presented using the Kaplan–Meier analysis. 
 
 ```{r, child = "../src/km.Rmd"}
 
