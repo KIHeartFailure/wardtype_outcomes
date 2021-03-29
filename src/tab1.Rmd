@@ -22,59 +22,6 @@ funcTab1 <- function(filt, filtname) {
 
   tab1out <- cbind(tab1[, 5], tab1[, 1:3])
 
-  myor <- function(xvar, filt2 = filt) {
-    nval <- ifelse(is.factor(tab1data[, xvar][[1]]), nlevels(tab1data[, xvar][[1]]), 2)
-
-    cmod <- my.glm.mids(formula(paste0("clinic == 'medicine' ~ ", xvar)),
-      family = binomial(link = "logit"), data = imp, subset = filt2
-    )
-
-    scmod <- summary(pool(cmod))
-
-    p <- dF(scmod$p.value[2:nval], dig = 3)
-    p <- replace(p, p == "0.000", "<0.001")
-
-    ortmp <- cbind(rownames(scmod)[2:nval], paste0(
-      dF(exp(scmod$estimate[2:nval]), dig = 2),
-      " (", dF(exp(scmod$estimate[2:nval] - z05 * scmod$std.error[2:nval]), dig = 2),
-      "-", dF(exp(scmod$estimate[2:nval] + z05 * scmod$std.error[2:nval]), dig = 2), "), ",
-      p
-    ))
-    if (exists("ortab")) {
-      ortab <<- rbind(ortab, ortmp)
-    } else {
-      ortab <<- ortmp
-    }
-  }
-
-  if (exists("ortab")) rm(ortab, envir = .GlobalEnv)
-  for (i in seq_along(modvars)) {
-    myor(modvars[i])
-  }
-  colnames(ortab) <- c("varstmp", "Crude OR (95% CI), p-value")
-
-  cmodadj <- my.glm.mids(formula(paste0("clinic == 'medicine' ~ ", paste(modvars, collapse = " + "))),
-    family = binomial(link = "logit"), data = imp, subset = filt
-  )
-
-  scmodadj <- summary(pool(cmodadj))
-
-  nval <- length(scmodadj$estimate)
-
-  padj <- dF(scmodadj$p.value[2:nval], dig = 3)
-  padj <- replace(padj, padj == "0.000", "<0.001")
-
-  ortabadj <- cbind(rownames(scmodadj)[2:nval], paste0(
-    dF(exp(scmodadj$estimate[2:nval]), dig = 2),
-    " (", dF(exp(scmodadj$estimate[2:nval] - z05 * scmodadj$std.error[2:nval]), dig = 2),
-    "-", dF(exp(scmodadj$estimate[2:nval] + z05 * scmodadj$std.error[2:nval]), dig = 2), "), ",
-    padj
-  ))
-
-  colnames(ortabadj) <- c("varstmp", "Adjusted OR (95% CI), p-value")
-
-  ortaball <- full_join(data.frame(ortab), data.frame(ortabadj), by = "varstmp")
-
   tab1outfix <- data.frame(rownames(tab1out), tab1out)
   colnames(tab1outfix) <- c("Variables", "Missing (%)", "cardiology", "non-cardiology", "p-value")
 
@@ -92,20 +39,11 @@ funcTab1 <- function(filt, filtname) {
     filter(nlev > 2)
   vars3 <- paste(vars3$var, collapse = "|^")
 
-  ortaballfix <- ortaball %>%
-    mutate(
-      varstmp = gsub(vars3, "", varstmp),
-      varstmp = gsub("[[:space:]]", "", varstmp)
-      # varstmp = ifelse(varstmp == "logntProBNP", "ntProBNP", varstmp)
-    )
-
-  tab1outall <- full_join(tab1outfix, ortaballfix, by = c("varstmp")) %>%
+  tab1outall <- tab1outfix %>%
     select(-varstmp)
 
   colnames(tab1outall) <- sanitizeTextFunc(c(
-    "Variables", "Missing (%)", "cardiology", "non-cardiology", "p-value",
-    "Crude OR (95% CI), p-value", "Adjusted OR (95% CI), p-value"
-  ))
+    "Variables", "Missing (%)", "cardiology", "non-cardiology", "p-value"))
 
   ## fix footnotes and white space
   ## white space removed in kable function.
@@ -150,9 +88,7 @@ funcTab1 <- function(filt, filtname) {
       landscape(),
     general = c(
       "Categorical variables are presented with n (%) and tested with chi-square test and continous variables with median [q1-q3] and tested with Mann-Whitney U test.",
-      "Odds ratios (95% CI), p-value are estimated using logistic regression.",
-      "Descriptive statistics is from raw data and Odds ratios from imputed data.",
-      "The variables estimated with logistic regression are the same as are adjusted for in the cox regression."
+      "Descriptive statistics is from raw data and Odds ratios from imputed data."
     ),
     symbol = c(
       "arb/acei/arni",

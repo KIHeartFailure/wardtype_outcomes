@@ -153,6 +153,10 @@ model due to the very percentage of missing observations.
 
 ```
 
+```{r, child = "../src/orforest.Rmd"}
+
+```
+
 ### Assumptions
 
 Outliers were investigated with Cook's distance and multicollinearity 

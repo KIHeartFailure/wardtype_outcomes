@@ -1,0 +1,169 @@
+```{r orforest, cache=TRUE}
+
+orfunc <- function(filt, filtname, mi = NA, ma = NA, extraticks = NULL) {
+  if (filtname %in% c("In-patient", "Out-patient")) {
+    modvars <- modvars[modvars != "location"]
+  }
+
+  cmodadj <- my.glm.mids(formula(paste0("clinic == 'medicine' ~ ", paste(modvars, collapse = " + "))),
+    family = binomial(link = "logit"), data = imp, subset = filt
+  )
+
+  scmodadj <- summary(pool(cmodadj))
+
+  nval <- length(scmodadj$estimate)
+
+  padj <- dF(scmodadj$p.value[2:nval], dig = 3)
+  padj <- replace(padj, padj == "0.000", "<0.001")
+
+  ortabadj <- tibble(
+    var = rownames(scmodadj)[2:nval],
+    orci = paste0(
+      dF(exp(scmodadj$estimate[2:nval]), dig = 2),
+      " (", dF(exp(scmodadj$estimate[2:nval] - z05 * scmodadj$std.error[2:nval]), dig = 2),
+      "-", dF(exp(scmodadj$estimate[2:nval] + z05 * scmodadj$std.error[2:nval]), dig = 2), ")"
+    ),
+    p = padj,
+    logor = scmodadj$estimate[2:nval],
+    loglci = scmodadj$estimate[2:nval] - z05 * scmodadj$std.error[2:nval],
+    loguci = scmodadj$estimate[2:nval] + z05 * scmodadj$std.error[2:nval]
+  )
+
+  ortabadj <- ortabadj %>%
+    mutate(varsforest = case_when(
+      var == "gendermale" ~ "Male gender",
+      var == "age_cat>75" ~ "Age>=75 years",
+      var == "locationout-patient" ~ "Out-patient",
+      var == "indexYear_cat2005-2008" ~ "2005-2008 vs 2000-2004",
+      var == "indexYear_cat2009-2012" ~ "2009-2012 vs 2000-2004",
+      var == "indexYear_cat2013-2016" ~ "2013-2016 vs 2000-2004",
+      var == "scb.marital.status_catSingle/Widowed" ~ "Single/Widowed",
+      var == "scb.education_catSecondary school" ~ "Secondary vs Compulsory",
+      var == "scb.education_catUniversity" ~ "University vs Compulsory",
+      var == "scb.dispinc_cat2.Above median" ~ "Income above median",
+      var == "durationHFmore than 6 months" ~ "HF history>6m",
+      var == "nyhaNYHA-II" ~ "NYHA II vs I",
+      var == "nyhaNYHA-III" ~ "NYHA III vs I",
+      var == "nyhaNYHA-IV" ~ "NYHA IV vs I",
+      var == "bp.sys_cat>=120" ~ "SBP>=120 mmHg",
+      var == "heartRate_cat>=70" ~ "HR>=70 bpm",
+      var == "smokingformer" ~ "Former vs Current smoker",
+      var == "smokingnever" ~ "Never vs Current smoker",
+      var == "d_Atrial_fib_flutteryes" ~ "Atrial fibrillation",
+      var == "d_Diabetesyes" ~ "Diabetes",
+      var == "d_Hypertensionyes" ~ "Hypertension",
+      var == "com_COPDyes" ~ "COPD",
+      var == "com_stroke_tiayes" ~ "Stroke/TIA",
+      var == "d_IHDyes" ~ "IHD",
+      var == "d_Valvediseaseyes" ~ "Valve disease",
+      var == "com_canceryes" ~ "Cancer",
+      var == "com_liveryes" ~ "Liver disease",
+      var == "device_catICD/CRT" ~ "ICD/CRT",
+      var == "hb_cat<120(f)/130(m)" ~ "Anemia",
+      var == "GFR_cat>=60" ~ "GFR>=60 ml/min/1.73m2",
+      var == "ntProBNP_cat2.Above median" ~ "NT-proBNP above median",
+      var == "betaBlockeryes" ~ "Beta-Blocker",
+      var == "rasyes" ~ "RASi**",
+      var == "MRAyes" ~ "MRA",
+      var == "diureticsyes" ~ "Diureteics",
+      var == "digoxinyes" ~ "Digoxin",
+      var == "followUp.HFyes" ~ "FU in HF clinic",
+      var == "followUp.locationSpecialty" ~ "FU by specialist"
+    )) %>%
+    arrange(logor)
+
+  if (is.na(mi)) mi <- round(exp(min(ortabadj$loglci)), 1)
+  if (is.na(ma)) ma <- round(exp(max(ortabadj$loguci)), 1)
+
+  cextext <- 0.8
+
+  # c(bottom, left, top, right)
+  par(mar = c(4, 16, 1, 4) + 0.2)
+  plot(ortabadj$logor, 1:nrow(ortabadj),
+    xlab = "",
+    xlim = c(
+      log(mi),
+      log(ma)
+    ),
+    ylim = c(1, nrow(ortabadj) + 1),
+    axes = FALSE,
+    ylab = NA,
+    cex.lab = 1.1,
+    main = NA,
+    cex = 1.2,
+    type = "p",
+    pch = 22,
+    bg = kicols[1],
+    col = kicols[1]
+  )
+
+
+  for (i in 1:nrow(ortabadj)) {
+    matplot(c(ortabadj$loglci[i], ortabadj$loguci[i]), c(i, i),
+      type = "l", add = TRUE, col = kicols[1], cex = 2
+    )
+  }
+
+  matplot(c(0, 0), c(-1, nrow(ortabadj) + 0.5), type = "l", lty = 3, add = TRUE, col = "black")
+
+  axis(1,
+    cex.axis = cextext, at = log(seq(mi, ma, 0.1)),
+    labels = seq(mi, ma, 0.1)
+  )
+
+  if (!is.null(extraticks)) {
+      axis(1, cex.axis = cextext, at = log(extraticks), labels = extraticks)
+  }
+  axis(2,
+    at = 1:(nrow(ortabadj) + 1),
+    labels = c(ortabadj$varsforest, "Variable"),
+    cex.axis = cextext, tick = FALSE, las = 2, line = 15, hadj = 0
+  )
+
+  axis(2,
+    at = 1:(nrow(ortabadj) + 1),
+    labels = c(ortabadj$orci, "OR (95% CI)"),
+    cex.axis = cextext, tick = FALSE, las = 2, line = 4, hadj = 0.5
+  )
+
+  axis(2,
+    at = 1:(nrow(ortabadj) + 1),
+    labels = c(ortabadj$p, "P-value"),
+    cex.axis = cextext, tick = FALSE, las = 2, line = -.5, hadj = 0.5
+  )
+
+  axis(1,
+    at = 0.05, cex.axis = cextext,
+    labels = "Less likely - Non-cardiology - More likely", line = 1, tick = FALSE
+  )
+
+  #   forestplot(
+  #   labeltext = rbind(c("Variable   ", "OR (95% CI)", "p-value"), matrix(c(ortabadj$varsforest, ortabadj$orci, ortabadj$p), ncol = 3)),
+  #   mean = c(NA, ortabadj$logor),
+  #   lower = c(NA, ortabadj$loglci),
+  #   upper = c(NA, ortabadj$loguci),
+  #   zero = 0,
+  #   xlog = TRUE,
+  #   #clip = c(mi, ma),
+  #   boxsize = 0.75,
+  #   col = meta.colors(
+  #     box = kicols[1], line = kicols[1]
+  #   ),
+  #   align = c("l", "c", "c"),
+  #   xlab = "Less likely - Non-cardiology - More likely",
+  #   xlim = c(.5, 1.4)
+  # )
+}
+```
+
+```{r orforestoverall, cache=TRUE, dependson="orforest", fig.cap="Forest logistic regression - Overall"}
+orfunc(filt = quote(!is.na(age)), filtname = "Overall", mi = 0.5, extraticks = 1.1)
+```
+
+```{r orforestin, cache=TRUE, dependson="orforest", fig.cap="Forest logistic regression - In-patient"}
+orfunc(quote(location == "in-patient"), "In-patient", extraticks = c(0.9))
+```
+
+```{r orforestout, cache=TRUE, dependson="orforest", fig.cap="Forest logistic regression - Out-patient"}
+orfunc(quote(location == "out-patient"), "Out-patient", extraticks = c(1, 1.7))
+```
