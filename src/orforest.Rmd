@@ -69,8 +69,8 @@ orfunc <- function(filt, filtname, mi = NA, ma = NA, extraticks = NULL) {
       var == "digoxinyes" ~ "Digoxin",
       var == "followUp.HFyes" ~ "FU in HF clinic",
       var == "followUp.locationSpecialty" ~ "FU by specialist"
-    )) %>%
-    arrange(logor)
+    )) %>% 
+    arrange(desc(1:n()))
 
   if (is.na(mi)) mi <- round(exp(min(ortabadj$loglci)), 1)
   if (is.na(ma)) ma <- round(exp(max(ortabadj$loguci)), 1)
@@ -157,7 +157,7 @@ orfunc <- function(filt, filtname, mi = NA, ma = NA, extraticks = NULL) {
 ```
 
 ```{r orforestoverall, cache=TRUE, dependson="orforest", fig.cap="Forest logistic regression - Overall"}
-orfunc(filt = quote(!is.na(age)), filtname = "Overall", mi = 0.5, extraticks = 1.1)
+orfunc(filt = quote(!is.na(age)), filtname = "Overall", mi = 0.5)
 ```
 
 ```{r orforestin, cache=TRUE, dependson="orforest", fig.cap="Forest logistic regression - In-patient"}
