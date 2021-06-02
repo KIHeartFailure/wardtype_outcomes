@@ -3,6 +3,7 @@ tabvars <- c(
   "indexYear_cat", "scb.marital.status_cat",
   "scb.education_cat", "scb.dispinc", "scb.dispinc_cat",
   "bmi", "bmi_cat", "durationHF", "nyha",
+  "lvef", 
   "bp.sys", "bp.sys_cat", "bp.dia", "heartRate", "heartRate_cat",
   "smoking",
   "d_Atrial_fib_flutter",
@@ -23,6 +24,7 @@ tabvars <- c(
 
 # vars fox log reg and cox reg
 tabvars_not_in_mod <- c(
+  "lvef",
   # should not be included according to clinical reasons
   "bp.dia", "statins", "nitrates", "asaTRC", "anticoagulantia",
   # should not be included since are included as categorical variables

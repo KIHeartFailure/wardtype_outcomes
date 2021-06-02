@@ -167,7 +167,7 @@ wdata <- wdata %>%
     location,
     indexYear, scb.marital.status_cat,
     scb.education_cat, scb.dispinc_cat, scb.dispinc,
-    bmi_cat, bmi, durationHF, nyha,
+    bmi_cat, bmi, durationHF, nyha, lvef, 
     bp.sys_cat, bp.sys, bp.dia, heartRate, heartRate_cat, smoking,
     d_Atrial_fib_flutter,
     d_Diabetes,

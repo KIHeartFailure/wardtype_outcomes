@@ -11,6 +11,7 @@ ini <- mice(wdata, maxit = 0, print = F)
 # Variables that should not be used in imputation model, clinic is not included in the imputation model.
 
 noimpvars <- c(
+  "lvef",
   "indexYear_cat", "bp.dia", "clinic_num_medicine", "clinic",
   "death", "out_hf_hosp", "cvDeath", "time_out_hf_hosp", "timeTodeath", "date",
   "out_hf_hosp_cr",
