@@ -163,6 +163,12 @@ Outliers were investigated with Cook's distance and multicollinearity
 with the variance inflation factor in the full model in the overall population. 
 No action was deemed necessary.    
 
+### Time from date of EF to index
+
+```{r, child = "../src/efdate.Rmd"}
+
+```
+
 ## Outcomes
 
 Summary of follow-up time (years, days):

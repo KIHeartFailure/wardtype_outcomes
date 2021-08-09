@@ -2,9 +2,9 @@
 
 # Inclusion criteria --------------------------------------------------------
 
-flow <- c("Number of posts in SwedeHF", paste0(nrow(rs.data6), " (" ,nrow(rs.data6 %>% group_by(lopnr) %>% slice(1) %>% ungroup()), ")"), NA, NA, NA)
+flow <- c("Number of posts in SwedeHF", paste0(nrow(rs.data6edtm), " (" ,nrow(rs.data6edtm %>% group_by(lopnr) %>% slice(1) %>% ungroup()), ")"), NA, NA, NA)
 
-wdata <- rs.data6 %>%
+wdata <- rs.data6edtm %>%
   mutate(koll = ifelse(!is.na(lvef), "yes", "no"))
 flowtabFunc("No missing EF")
 
