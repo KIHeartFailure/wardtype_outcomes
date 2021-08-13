@@ -65,7 +65,7 @@ orfunc <- function(filt, filtname, mi = NA, ma = NA, extraticks = NULL) {
       var == "betaBlockeryes" ~ "Beta-Blocker",
       var == "rasyes" ~ "RASi**",
       var == "MRAyes" ~ "MRA",
-      var == "diureticsyes" ~ "Diureteics",
+      var == "diureticsyes" ~ "Diuretics",
       var == "digoxinyes" ~ "Digoxin",
       var == "followUp.HFyes" ~ "FU in HF clinic",
       var == "followUp.locationSpecialty" ~ "FU by specialist"
