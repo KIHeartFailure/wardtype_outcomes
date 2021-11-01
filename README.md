@@ -4,7 +4,7 @@ The aim of this R code is to be transparant and document the data handling and s
 
 ## Language 
 
-English (sprinkled with Swedish). 
+English. 
 
 ## Data
 
@@ -25,4 +25,4 @@ reports/Statistical_report_Wardtype.Rmd
 
 ## Publication
 
-... 
+https://pubmed.ncbi.nlm.nih.gov/34517016/ 
